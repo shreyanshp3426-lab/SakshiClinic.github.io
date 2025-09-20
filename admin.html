@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin Panel - View Appointments</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f0f0f0;
+      padding: 20px;
+      text-align: center;
+    }
+    table {
+      margin: 20px auto;
+      border-collapse: collapse;
+      width: 90%;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 10px;
+    }
+    th {
+      background-color: #eee;
+    }
+    button {
+      padding: 6px 12px;
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: darkred;
+    }
+  </style>
+</head>
+<body>
+  <h2>Admin Panel - All Appointments</h2>
+  <table id="bookingTable">
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Name</th>
+        <th>Phone</th>
+        <th>Date</th>
+        <th>Time</th>
+        <th>Action</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    const scriptURL = "https://script.google.com/macros/s/AKfycbzv7Vtt_WnUvVjwrQcjrQY3bqcB10L0Fl1_2fPEbHP8E7TmfqsBV7TKFqIX9rAnrvvM/exec";
+    function loadBookings() {
+      fetch(scriptURL)
+        .then(res => res.json())
+        .then(data => {
+          const tbody = document.querySelector("#bookingTable tbody");
+          tbody.innerHTML = "";
+          data.forEach((booking, index) => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+              <td>${index + 2}</td>
+              <td>${booking.name}</td>
+              <td>${booking.phone}</td>
+              <td>${booking.date}</td>
+              <td>${booking.time}</td>
+              <td><button onclick="deleteBooking(${index + 2})">Delete</button></td>
+            `;
+            tbody.appendChild(row);
+          });
+        });
+    }
+
+    function deleteBooking(index) {
+      if (!confirm("Are you sure you want to delete this booking?")) return;
+      fetch(scriptURL.replace("/exec", "/dev") + `?index=${index}`, {
+        method: "DELETE"
+      })
+        .then(res => res.text())
+        .then(response => {
+          if (response === "deleted") {
+            alert("Booking deleted");
+            loadBookings();
+          } else {
+            alert("Error deleting booking");
+          }
+        });
+    }
+
+    window.onload = loadBookings;
+  </script>
+</body>
+</html>

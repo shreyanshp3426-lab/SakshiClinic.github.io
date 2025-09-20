@@ -1,0 +1,204 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Book Appointment</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', sans-serif;
+      color: #333;
+      background: url("swappy-20250731-223815.png") no-repeat center center fixed;
+      background-size: cover;
+    }
+    .container {
+  max-width: 500px;
+  margin: 60px auto;
+  background: rgba(255, 255, 255, 0.4); /* more transparent */
+  backdrop-filter: blur(10px); /* blur effect for glass look */
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 12px;
+  padding: 30px 40px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+}
+
+    h2 {
+      text-align: center;
+      color: #1f2937;
+      margin-bottom: 24px;
+    }
+    label {
+      font-weight: 600;
+      display: block;
+      margin-bottom: 6px;
+      margin-top: 16px;
+    }
+    input, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      font-size: 16px;
+    }
+    button, a.whatsapp-btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      font-size: 17px;
+      font-weight: bold;
+      margin-top: 16px;
+      cursor: pointer;
+      text-align: center;
+      display: inline-block;
+      text-decoration: none;
+    }
+    button {
+      background-color: #3b82f6;
+    }
+    button:hover {
+      background-color: #2563eb;
+    }
+    a.whatsapp-btn {
+      background-color: #25D366;
+    }
+    a.whatsapp-btn:hover {
+      background-color: #1da851;
+    }
+    .hidden {
+      display: none;
+    }
+    #confirmation {
+      margin-top: 20px;
+      font-weight: bold;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Book an Appointment</h2>
+
+    <label for="date">Select a Date</label>
+    <input type="date" id="date" />
+
+    <div id="timing-section" class="hidden">
+      <label for="time">Available Time</label>
+      <select id="time">
+        <option disabled selected>Select a time</option>
+      </select>
+
+      <label for="name">Your Name</label>
+      <input type="text" id="name" placeholder="Enter your name" required />
+
+      <label for="phone">Phone Number</label>
+      <input type="tel" id="phone" placeholder="Enter phone number" required />
+
+      <button onclick="bookAppointment()">📅 Book Online</button>
+      <a href="#" id="whatsapp-btn" class="whatsapp-btn">💬 Book on WhatsApp</a>
+    </div>
+
+    <p id="confirmation"></p>
+  </div>
+
+  <script>
+    const dateInput = document.getElementById("date");
+    const timeSection = document.getElementById("timing-section");
+    const timeSelect = document.getElementById("time");
+    const confirmation = document.getElementById("confirmation");
+
+    const today = new Date().toISOString().split('T')[0];
+    dateInput.setAttribute('min', today);
+
+    const availableTimings = ["10:00 AM", "11:00 AM", "2:00 PM", "4:00 PM"];
+
+    dateInput.addEventListener("change", () => {
+      const selectedDate = new Date(dateInput.value);
+      const day = selectedDate.getDay();
+
+      if (isNaN(day)) {
+        timeSection.classList.add("hidden");
+        return;
+      }
+      if (day === 0 || day === 6) {
+        alert("Clinic is closed on Sunday evenings. Please select a weekday.");
+        dateInput.value = "";
+        timeSection.classList.add("hidden");
+        return;
+      }
+
+      timeSelect.innerHTML = `<option disabled selected>Select a time</option>`;
+      availableTimings.forEach(time => {
+        const option = document.createElement("option");
+        option.value = time;
+        option.textContent = time;
+        timeSelect.appendChild(option);
+      });
+
+      timeSection.classList.remove("hidden");
+    });
+
+    const scriptURL = "YOUR_GOOGLE_SHEET_SCRIPT_URL";
+
+    function bookAppointment() {
+      const name = document.getElementById("name").value.trim();
+      const phone = document.getElementById("phone").value.trim();
+      const date = dateInput.value;
+      const time = timeSelect.value;
+
+      if (!name || !phone || !date || !time) {
+        alert("Please fill in all fields.");
+        return;
+      }
+
+      const formData = `name=${encodeURIComponent(name)}&phone=${encodeURIComponent(phone)}&date=${encodeURIComponent(date)}&time=${encodeURIComponent(time)}`;
+
+      fetch(scriptURL, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: formData
+      })
+      .then(res => res.text())
+      .then(responseText => {
+        const cleanResponse = responseText.trim().toLowerCase();
+        if (cleanResponse === "already_booked") {
+          confirmation.style.color = "red";
+          confirmation.textContent = "❌ That time slot is already booked.";
+        } else if (cleanResponse === "success") {
+          confirmation.style.color = "green";
+          confirmation.innerHTML = `✅ Appointment confirmed for <strong>${name}</strong> on <strong>${date}</strong> at <strong>${time}</strong>.`;
+        } else {
+          confirmation.style.color = "orange";
+          confirmation.textContent = `⚠️ Unexpected response: ${responseText}`;
+        }
+        dateInput.value = "";
+        timeSection.classList.add("hidden");
+      })
+      .catch(err => {
+        confirmation.style.color = "red";
+        confirmation.textContent = `❌ Error: ${err.message}`;
+      });
+    }
+
+    document.getElementById("whatsapp-btn").addEventListener("click", () => {
+      const name = document.getElementById("name").value.trim();
+      const date = dateInput.value;
+      const time = timeSelect.value;
+      const phoneNumber = "9987173475"; 
+      const message = `Hi, I’d like to book an appointment.\nName: ${name}\nDate: ${date}\nTime: ${time}`;
+      window.open(`https://wa.me/${phoneNumber}?text=${encodeURIComponent(message)}`, "_blank");
+    });
+  </script>
+</body>
+</html>
+
+
+
+
+
+
